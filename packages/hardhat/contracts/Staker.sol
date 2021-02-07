@@ -11,20 +11,46 @@ contract Staker {
     exampleExternalContract = ExampleExternalContract(exampleExternalContractAddress);
   }
 
-  // Collect funds in a payable `stake()` function and track individual `balances` with a mapping:
-  //  ( make sure to add a `Stake(address,uint256)` event and emit it for the frontend <List/> display )
+  uint256 public deadline = now + 30 seconds;
+  uint256 public constant threshold = 1 ether;
+  mapping (address => uint256) public balances;
+  event Stake(address indexed _sender, uint256 _stakeAmount);
 
+  modifier notCompleted {
+    require(!exampleExternalContract.completed(), "Contract is completed; sorry!");
+    _;
+  }
 
-  // After some `deadline` allow anyone to call an `execute()` function
-  //  It should either call `exampleExternalContract.complete{value: address(this).balance}()` to send all the value
+  modifier deadlinePassed {
+    require(timeLeft() == 0, "Deadline hasn't passed yet; sorry!");
+    _;
+  }
 
+  function timeLeft() public view returns (uint256) {
+    if (deadline <= now) {
+      return 0;
+    }
+    return deadline - now;
+  }
 
+  function stake() public payable {
+    require(timeLeft() > 0, "Deadline has passed; sorry!");
 
-  // if the `threshold` was not met, allow everyone to call a `withdraw()` function
+    balances[msg.sender] += msg.value;
+    emit Stake(msg.sender, msg.value);
+  }
 
+  function execute() public payable notCompleted deadlinePassed {
+    require(address(this).balance >= threshold, "Staking balance below the threshold; sorry!");
+    
+    exampleExternalContract.complete{value: address(this).balance}();
+  }
+  
+  function withdraw(address payable _withdrawTo) public notCompleted deadlinePassed {
+    require(address(this).balance < threshold, "Your balance is above the threshold so you can't withdraw; sorry!");
+    require(msg.sender == _withdrawTo);
 
-
-  // Add a `timeLeft()` view function that returns the time left before the deadline for the frontend
-
-
+    balances[_withdrawTo] = 0;
+    _withdrawTo.call.value(balances[_withdrawTo])("");
+  }
 }
