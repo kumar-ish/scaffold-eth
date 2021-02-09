@@ -11,10 +11,11 @@ contract Staker {
     exampleExternalContract = ExampleExternalContract(exampleExternalContractAddress);
   }
 
-  uint256 public deadline = now + 30 seconds;
+  uint256 public deadline = now + 5 minutes;
   uint256 public constant threshold = 1 ether;
   mapping (address => uint256) public balances;
   event Stake(address indexed _sender, uint256 _stakeAmount);
+  // event Withdraw(address indexed _sender, uint256 _stakeAmount);
 
   modifier notCompleted {
     require(!exampleExternalContract.completed(), "Contract is completed; sorry!");
@@ -33,11 +34,15 @@ contract Staker {
     return deadline - now;
   }
 
-  function stake() public payable {
+  function stake() public payable notCompleted {
     require(timeLeft() > 0, "Deadline has passed; sorry!");
 
     balances[msg.sender] += msg.value;
     emit Stake(msg.sender, msg.value);
+    
+    if (balances[msg.sender] >= threshold) {
+      exampleExternalContract.complete{value: address(this).balance}();
+    }
   }
 
   function execute() public payable notCompleted deadlinePassed {
@@ -48,9 +53,10 @@ contract Staker {
   
   function withdraw(address payable _withdrawTo) public notCompleted deadlinePassed {
     require(address(this).balance < threshold, "Your balance is above the threshold so you can't withdraw; sorry!");
+    require(address(this).balance > 0, "Your balance is zero, so you can't withdraw!");
     require(msg.sender == _withdrawTo);
 
     balances[_withdrawTo] = 0;
-    _withdrawTo.call.value(balances[_withdrawTo])("");
+    _withdrawTo.call{value: balances[_withdrawTo]}("");
   }
 }

@@ -55,9 +55,9 @@ uint256 public constant threshold = 1 ether;
 
 #### 🥅 Goals
 
-- [ ] Do you see the balance of the `Staker` contract go up when you `stake()`?
-- [ ] Is your `balance` correctly tracked?
-- [ ] Do you see the events in the `Staker UI` tab?
+- [x] Do you see the balance of the `Staker` contract go up when you `stake()`?
+- [x] Is your `balance` correctly tracked?
+- [x] Do you see the events in the `Staker UI` tab?
 
 
 ---
@@ -85,19 +85,19 @@ Hint: If the `address(this).balance` of the contract is over the `threshold` by 
 > 👩‍💻 You can call `yarn deploy` any time you want a fresh contract
 
 #### 🥅 Goals
-- [ ] Can you see `timeLeft` counting down in the `Staker UI` tab when you trigger a transaction with the faucet?
-- [ ] If you `stake()` enough ETH before the `deadline`, does it call `complete()`?
-- [ ] If you don't `stake()` enough can you `withdraw(address payable)` your funds?
+- [x] Can you see `timeLeft` counting down in the `Staker UI` tab when you trigger a transaction with the faucet?
+- [x] If you `stake()` enough ETH before the `deadline`, does it call `complete()`?
+- [x] If you don't `stake()` enough can you `withdraw(address payable)` your funds?
 
 ⚔️ Side Quests
-- [ ] Can execute get called more than once, and is that okay?
-- [ ] Can you deposit and withdraw freely after the `deadline`, and is that okay?
-- [ ] What are other implications of *anyone* being able to withdraw for someone?
-- [ ] Can you implement your own [modifier](https://solidity-by-example.org/function-modifier/) that checks whether `deadline` was passed or not? Where can you use it?
+- [x] Can execute get called more than once, and is that okay? (no it cannot, and it is not)
+- [x] Can you deposit and withdraw freely after the `deadline`, and is that okay?
+- [x] What are other implications of *anyone* being able to withdraw for someone? (Bad; ensure that message caller and balance-taker are same)
+- [x] Can you implement your own [modifier](https://solidity-by-example.org/function-modifier/) that checks whether `deadline` was passed or not? Where can you use it?
 
 🐸 It's a trap!
-- [ ] Make sure funds can't get trapped in the contract! Try sending funds after you have executed!
-- [ ] Try to create a [modifier](https://solidity-by-example.org/function-modifier/) called `notCompleted`. It will check that `ExampleExternalContract` is not completed yet. Use it to protect your `execute` and `withdraw` functions.
+- [x] Make sure funds can't get trapped in the contract! Try sending funds after you have executed!
+- [x] Try to create a [modifier](https://solidity-by-example.org/function-modifier/) called `notCompleted`. It will check that `ExampleExternalContract` is not completed yet. Use it to protect your `execute` and `withdraw` functions.
 
 ---
 
