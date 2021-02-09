@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Component, useCallback, useEffect, useState } from "react";
 import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
 import "antd/dist/antd.css";
 import {  JsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Row, Col, Button, Menu, Alert, List } from "antd";
+import { BigNumber } from "@ethersproject/bignumber";
+import { Row, Col, Button, Menu, Alert, List, Input, Tooltip } from "antd";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
@@ -37,7 +38,7 @@ const humanizeDuration = require("humanize-duration");
 const targetNetwork = NETWORKS['localhost']; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
 // 😬 Sorry for all the console logging
-const DEBUG = true
+const DEBUG = false
 
 // 🛰 providers
 if(DEBUG) console.log("📡 Connecting to Mainnet Ethereum");
@@ -56,9 +57,34 @@ const localProvider = new JsonRpcProvider(localProviderUrlFromEnv);
 // 🔭 block explorer URL
 const blockExplorer = targetNetwork.blockExplorer;
 
+class Countdown extends Component {
+  constructor(props){
+    super(props);
+    this.state = { time: this.props.value };
+  }
+
+  render() {
+    return (
+      <div> { humanizeDuration(this.state.time) } </div>
+    );
+  }
+
+  componentDidMount() {
+    this.interval = setInterval(() => this.setState({ time: this.state.time - 1000 }), 1000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.interval);
+  }
+}
+
+
 
 function App(props) {
   const [injectedProvider, setInjectedProvider] = useState();
+  const [txValue, setTxValue] = useState();
+  const [returnValue, setReturnValue] = useState();
+
   /* 💵 This hook will get the price of ETH from 🦄 Uniswap: */
   const price = useExchangePrice(targetNetwork,mainnetProvider);
 
@@ -129,7 +155,7 @@ function App(props) {
   // keep track of a variable from the contract in the local React state:
   const timeLeft = useContractReader(readContracts,"Staker", "timeLeft")
   console.log("⏳ timeLeft:",timeLeft)
-
+  
 
 
   const complete = useContractReader(readContracts,"ExampleExternalContract", "completed")
@@ -142,7 +168,7 @@ function App(props) {
   let completeDisplay = ""
   if(complete){
     completeDisplay = (
-      <div style={{padding:64, backgroundColor:"#eeffef", fontWeight:"bolder"}}>
+      <div style={{padding:"20px 32px", backgroundColor:"#eeffef", fontWeight:"bolder"}}>
         🚀 🎖 👩‍🚀  -  Staking App triggered `ExampleExternalContract` -- 🎉  🍾   🎊
         <Balance
           balance={exampleExternalContractBalance}
@@ -241,9 +267,11 @@ function App(props) {
 
           {completeDisplay}
 
-          <div style={{padding:8,marginTop:32}}>
-            <div>Timeleft:</div>
-            {timeLeft && humanizeDuration(timeLeft.toNumber()*1000)}
+          <div style={{padding:8,marginTop:35}}>
+            <div>Time left:</div>
+            {complete && "0 seconds; contract complete!"}
+            {!complete && timeLeft && <Countdown value={timeLeft.toNumber()*1000}/>}
+            {/* use cookies or something so a refresh doesn't end your life xd */}
           </div>
 
           <div style={{padding:8}}>
@@ -267,26 +295,72 @@ function App(props) {
           </div>
 
 
-          <div style={{padding:8}}>
+          <div style={{padding: 3}}>
             <Button type={"default"} onClick={()=>{
               tx( writeContracts.Staker.execute() )
             }}>📡  Execute!</Button>
           </div>
 
-          <div style={{padding:8}}>
+          <div style={{padding: 3}}>
             <Button type={"default"} onClick={()=>{
               tx( writeContracts.Staker.withdraw( address ) )
             }}>🏧  Withdraw</Button>
           </div>
 
-          <div style={{padding:8}}>
+          <div style={{padding: "35px 3px 15px"}}>
             <Button type={ balanceStaked ? "success" : "primary"} onClick={()=>{
               tx( writeContracts.Staker.stake({value: parseEther("0.5")}) )
             }}>🥩  Stake 0.5 ether!</Button>
           </div>
+          <div>
+            <p style={{color: "grey"}}> <b>OR</b></p>
+            <Input
+              placeholder="Staking value"
+              style={{ width:"200px" }}
+              onChange={e => setTxValue(e.target.value)}
+              value={txValue}
+              addonAfter={
+                <div style={{"min-width": "30px"}}>
+                  <Row>
+                    <Col span={12} style={{ padding: "0px 15px 0px 0px" }}>
+                      <Tooltip placement="top" title={" * 10^18 "}>
+                        <div
+                          type="dashed"
+                          style={{ cursor: "pointer" }}
+                          onClick={async () => {
+                            let floatValue = parseFloat(txValue)
+                            if(floatValue) setTxValue("" + floatValue * 10 ** 18);
+                          }}
+                        >
+                          ✳️ | {" "}
+                        </div>
+                      </Tooltip>
+                    </Col>
+                    <Col span={12}> 
+                      <Tooltip placement="right" title={"Set your own staking value!"}>
+                          <div
+                            type="dashed"
+                            style={{ cursor: "pointer" }}
+                            onClick={()=>{
+                              tx( writeContracts.Staker.stake({value: txValue}) )
+                            }}
+                          >
+                            🥩
+                          </div>
+                      </Tooltip>
+                    </Col>
+                  </Row>
+                  {/* <Row>
+                    <Col span={12}>col-12</Col>
+                    <Col span={12}>col-12</Col>
+                  </Row> */}
 
+                </div>
+              }
+            />
+            </div>
 
-
+          
             {/*
                 🎛 this scaffolding is full of commonly used components
                 this <Contract/> component will automatically parse your ABI
@@ -376,11 +450,8 @@ function App(props) {
          {faucetHint}
       </div>
 
-      <div style={{marginTop:32,opacity:0.5}}>Created by <Address
-        value={"Your...address"}
-        ensProvider={mainnetProvider}
-        fontSize={16}
-      /></div>
+      <div style={{marginTop:32,opacity:0.5}}>Created by Madhav.</div>
+      {/* Who doesn't have an Ethereum address */}
 
       <div style={{marginTop:32,opacity:0.5}}><a target="_blank" style={{padding:32,color:"#000"}} href="https://github.com/austintgriffith/scaffold-eth">🍴 Fork me!</a></div>
 
