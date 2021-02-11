@@ -53,6 +53,7 @@ contract Staker {
   
   function withdraw(address payable _withdrawTo) public notCompleted deadlinePassed {
     require(address(this).balance < threshold, "Your balance is above the threshold so you can't withdraw; sorry!");
+    require(address(this).balance < threshold, 'Your balance is above the threshold so you can"t withdraw; sorry!');
     require(address(this).balance > 0, "Your balance is zero, so you can't withdraw!");
     require(msg.sender == _withdrawTo);
 
